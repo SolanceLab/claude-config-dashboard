@@ -6,6 +6,15 @@ It runs a small Node server that **scans your filesystem live on every request**
 
 > Read-only by design. It shows your config; it never changes it.
 
+![Overview — the sidebar and a section of skills](docs/overview.png)
+
+<p align="center">
+  <img src="docs/settings.png" width="49%" alt="Settings — the full catalogue as a table with safety tiers, per-setting descriptions, and read-only toggles" />
+  <img src="docs/reader.png" width="49%" alt="Reader — click any item to read its source file" />
+</p>
+
+<sub>Screenshots use sample data, not a real config.</sub>
+
 ## Why
 
 Claude Code's configuration sprawls across `~/.claude/` (skills, agents, commands, workflows, settings, hooks), the plugin cache, and `~/.claude.json` (MCP servers). There's no single place to see all of it. This is that place.
