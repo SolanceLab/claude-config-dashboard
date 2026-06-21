@@ -91,54 +91,54 @@ function deepMask(v) {
 // danger (bypasses safety / admin-only). type + def let the table show defaults for unset keys.
 const SETTINGS_CATALOG = {
   // model & behaviour
-  model: { tier: "safe", type: "string" },
-  advisorModel: { tier: "safe", type: "string" },
-  effortLevel: { tier: "safe", type: "enum", enum: ["low", "medium", "high", "xhigh"] },
-  temperatureOverride: { tier: "safe", type: "number" },
-  alwaysThinkingEnabled: { tier: "safe", type: "bool", def: false },
-  showThinkingSummaries: { tier: "safe", type: "bool", def: false },
-  autoCompactEnabled: { tier: "safe", type: "bool", def: true },
-  awaySummaryEnabled: { tier: "safe", type: "bool", def: true },
-  autoMemoryEnabled: { tier: "safe", type: "bool", def: true },
+  model: { tier: "safe", type: "string", desc: "Default model — alias or full id; overrides the cloud default." },
+  advisorModel: { tier: "safe", type: "string", desc: "Model used for the server-side advisor tool." },
+  effortLevel: { tier: "safe", type: "enum", enum: ["low", "medium", "high", "xhigh"], desc: "How much effort/scope Claude puts into a task." },
+  temperatureOverride: { tier: "safe", type: "number", desc: "Override the model's sampling temperature." },
+  alwaysThinkingEnabled: { tier: "safe", type: "bool", def: false, desc: "Auto-enable extended thinking for every session." },
+  showThinkingSummaries: { tier: "safe", type: "bool", def: false, desc: "Show thinking as gray text / collapsible summaries (may be omitted on Opus 4.7+)." },
+  autoCompactEnabled: { tier: "safe", type: "bool", def: true, desc: "Auto-compact the conversation when context fills up." },
+  awaySummaryEnabled: { tier: "safe", type: "bool", def: true, desc: "Show a session recap after you've been away." },
+  autoMemoryEnabled: { tier: "safe", type: "bool", def: true, desc: "Enable auto-memory reading and writing." },
   // ui
-  editorMode: { tier: "safe", type: "enum", enum: ["normal", "vim"], def: "normal" },
-  tui: { tier: "safe", type: "bool", def: true },
-  autoScrollEnabled: { tier: "safe", type: "bool", def: true },
-  prefersReducedMotion: { tier: "safe", type: "bool", def: false },
-  spinnerTipsEnabled: { tier: "safe", type: "bool" },
-  language: { tier: "safe", type: "string" },
+  editorMode: { tier: "safe", type: "enum", enum: ["normal", "vim"], def: "normal", desc: "Input key bindings — normal or vim." },
+  tui: { tier: "safe", type: "bool", def: true, desc: "Use the TUI renderer (off = classic terminal renderer)." },
+  autoScrollEnabled: { tier: "safe", type: "bool", def: true, desc: "Auto-follow new output to the bottom of the terminal." },
+  prefersReducedMotion: { tier: "safe", type: "bool", def: false, desc: "Reduce or disable UI animations." },
+  spinnerTipsEnabled: { tier: "safe", type: "bool", desc: "Show tips on the loading spinner." },
+  language: { tier: "safe", type: "string", desc: "Preferred response language (e.g. spanish, japanese)." },
   // notifications
-  preferredNotifChannel: { tier: "safe", type: "enum", enum: ["auto", "terminal_bell", "iterm2", "iterm2_with_bell", "kitty", "ghostty", "notifications_disabled"], def: "auto" },
-  inputNeededNotifEnabled: { tier: "safe", type: "bool", def: false },
-  agentPushNotifEnabled: { tier: "safe", type: "bool", def: false },
-  remoteControlAtStartup: { tier: "safe", type: "bool" },
+  preferredNotifChannel: { tier: "safe", type: "enum", enum: ["auto", "terminal_bell", "iterm2", "iterm2_with_bell", "kitty", "ghostty", "notifications_disabled"], def: "auto", desc: "How notifications are delivered (bell, iTerm2, Ghostty, or off)." },
+  inputNeededNotifEnabled: { tier: "safe", type: "bool", def: false, desc: "Push a notification when Claude needs your input." },
+  agentPushNotifEnabled: { tier: "safe", type: "bool", def: false, desc: "Proactive push notifications (used by Remote Control)." },
+  remoteControlAtStartup: { tier: "safe", type: "bool", desc: "Enable Remote Control when a session starts." },
   // dev conveniences
-  verbose: { tier: "safe", type: "bool", def: false },
-  includeGitInstructions: { tier: "safe", type: "bool", def: true },
-  respectGitignore: { tier: "safe", type: "bool", def: true },
-  fileCheckpointingEnabled: { tier: "safe", type: "bool", def: true },
-  defaultShell: { tier: "safe", type: "enum", enum: ["bash", "powershell"], def: "bash" },
-  autoUpdatesChannel: { tier: "safe", type: "enum", enum: ["stable", "latest"], def: "latest" },
+  verbose: { tier: "safe", type: "bool", def: false, desc: "Verbose debug logging." },
+  includeGitInstructions: { tier: "safe", type: "bool", def: true, desc: "Include the built-in git workflow instructions." },
+  respectGitignore: { tier: "safe", type: "bool", def: true, desc: "Exclude .gitignore'd files from the @ file picker." },
+  fileCheckpointingEnabled: { tier: "safe", type: "bool", def: true, desc: "Snapshot files before edits so /rewind can undo them." },
+  defaultShell: { tier: "safe", type: "enum", enum: ["bash", "powershell"], def: "bash", desc: "Shell used for ! commands." },
+  autoUpdatesChannel: { tier: "safe", type: "enum", enum: ["stable", "latest"], def: "latest", desc: "Which release channel to auto-update from." },
   // caution
-  disableWorkflows: { tier: "caution", type: "bool", def: false },
-  disableBundledSkills: { tier: "caution", type: "bool", def: false },
-  disableSkillShellExecution: { tier: "caution", type: "bool", def: false },
-  disableAgentView: { tier: "caution", type: "bool", def: false },
-  fastModePerSessionOptIn: { tier: "caution", type: "bool", def: false },
-  autoMemoryDirectory: { tier: "caution", type: "string" },
-  attribution: { tier: "caution", type: "object" },
-  includeCoAuthoredBy: { tier: "caution", type: "bool", def: true },
-  minimumVersion: { tier: "caution", type: "string" },
+  disableWorkflows: { tier: "caution", type: "bool", def: false, desc: "Turn off dynamic workflows and bundled commands." },
+  disableBundledSkills: { tier: "caution", type: "bool", def: false, desc: "Turn off the bundled skills and workflows." },
+  disableSkillShellExecution: { tier: "caution", type: "bool", def: false, desc: "Disable inline shell execution inside skills." },
+  disableAgentView: { tier: "caution", type: "bool", def: false, desc: "Turn off background agents and the agent view." },
+  fastModePerSessionOptIn: { tier: "caution", type: "bool", def: false, desc: "Require opting into fast mode each session." },
+  autoMemoryDirectory: { tier: "caution", type: "string", desc: "Custom directory for auto-memory storage." },
+  attribution: { tier: "caution", type: "object", desc: "Customize git commit / PR attribution text." },
+  includeCoAuthoredBy: { tier: "caution", type: "bool", def: true, desc: "Add Co-Authored-By to commits (deprecated — use attribution)." },
+  minimumVersion: { tier: "caution", type: "string", desc: "Floor version for auto-updates." },
   // danger
-  skipAutoPermissionPrompt: { tier: "danger", type: "bool" },
-  skipDangerousModePermissionPrompt: { tier: "danger", type: "bool" },
-  disableAllHooks: { tier: "danger", type: "bool" },
-  disableArtifact: { tier: "danger", type: "bool" },
-  disableRemoteControl: { tier: "danger", type: "bool" },
-  disableClaudeAiConnectors: { tier: "danger", type: "bool" },
-  cleanupPeriodDays: { tier: "danger", type: "number", def: 30 },
-  apiKeyHelper: { tier: "danger", type: "string" },
-  policyHelper: { tier: "danger", type: "object" },
+  skipAutoPermissionPrompt: { tier: "danger", type: "bool", desc: "Skip permission prompts in auto mode — bypasses a safety gate." },
+  skipDangerousModePermissionPrompt: { tier: "danger", type: "bool", desc: "Skip permission prompts in dangerous mode — bypasses a safety gate." },
+  disableAllHooks: { tier: "danger", type: "bool", desc: "Disable ALL hooks and the custom status line." },
+  disableArtifact: { tier: "danger", type: "bool", desc: "Disable the Artifact tool." },
+  disableRemoteControl: { tier: "danger", type: "bool", desc: "Disable the Remote Control feature." },
+  disableClaudeAiConnectors: { tier: "danger", type: "bool", desc: "Disable claude.ai MCP connectors." },
+  cleanupPeriodDays: { tier: "danger", type: "number", def: 30, desc: "Days before old session files are auto-deleted (irreversible)." },
+  apiKeyHelper: { tier: "danger", type: "string", desc: "Script that generates an auth value / API key." },
+  policyHelper: { tier: "danger", type: "object", desc: "Admin-deployed executable that computes managed settings." },
 };
 const tierOf = (k) => (SETTINGS_CATALOG[k] && SETTINGS_CATALOG[k].tier) || "info";
 
@@ -236,13 +236,13 @@ function scanSettings() {
   for (const [key, meta] of Object.entries(SETTINGS_CATALOG)) {
     const set = has(key);
     all.push({
-      key, tier: meta.tier, type: meta.type, set,
+      key, tier: meta.tier, type: meta.type, set, desc: meta.desc || "",
       value: set ? display(s[key]) : (meta.def !== undefined ? String(meta.def) : "—"),
     });
   }
   for (const key of Object.keys(s)) {
     if (!SETTINGS_CATALOG[key] && !STRUCTURAL.has(key)) {
-      all.push({ key, tier: "info", type: "other", set: true, value: display(s[key]) });
+      all.push({ key, tier: "info", type: "other", set: true, value: display(s[key]), desc: "" });
     }
   }
   all.sort((a, b) => (TR[a.tier] - TR[b.tier]) || a.key.localeCompare(b.key));
@@ -528,6 +528,13 @@ const PAGE = `<!doctype html><html lang="en"><head>
   .tog:after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--page-muted);transition:left .15s}
   .tog.on:after{left:18px;background:var(--blue-text)}
   .ro{font-family:var(--mono);font-size:11px;color:var(--page-faint)}
+  .srow{cursor:pointer}
+  .srow .k:after{content:" ⌄";color:var(--page-faint);font-size:11px}
+  .sdesc{display:none}
+  .sdesc.open{display:table-row}
+  .sdesc td{background:var(--ink);border-left:2px solid var(--gold-soft);font-family:var(--serif);
+    font-size:14.5px;line-height:1.55;color:var(--page-dim);padding:12px 16px 14px}
+  .sdesc .meta{display:block;margin-top:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--page-muted)}
   details.perm{margin-top:4px}
   details.perm summary{cursor:pointer;color:var(--blue-text);font-family:var(--mono);font-size:12px;padding:6px 0;list-style:none}
   details.perm summary::-webkit-details-marker{display:none}
@@ -658,18 +665,19 @@ function renderView(){
       const on=isBool&&k.value==="true";
       const ctrl=isBool?'<span class="tog'+(on?' on':'')+'" title="editing coming soon — read-only"></span>':'<span class="ro">—</span>';
       const valCell=k.set?'<span class="val">'+esc(k.value)+'</span>':'<span class="val" style="opacity:.45">'+esc(k.value)+'</span> <span class="ro">default</span>';
-      return '<tr data-h="'+escA(k.key.toLowerCase())+'"><td><span class="tdot '+k.tier+'" title="'+k.tier+'"></span></td><td class="k">'+esc(k.key)+'</td><td>'+valCell+'</td><td><span class="tlab '+k.tier+'">'+(TLAB[k.tier]||k.tier)+'</span></td><td>'+ctrl+'</td></tr>';
+      const dh=escA(k.key.toLowerCase());
+      return '<tr class="srow" data-h="'+dh+'" title="'+escA(k.desc||'')+'"><td><span class="tdot '+k.tier+'" title="'+k.tier+'"></span></td><td class="k">'+esc(k.key)+'</td><td>'+valCell+'</td><td><span class="tlab '+k.tier+'">'+(TLAB[k.tier]||k.tier)+'</span></td><td>'+ctrl+'</td></tr>'
+        +'<tr class="sdesc" data-h="'+dh+'"><td colspan="5">'+esc(k.desc||'No description available.')+'<span class="meta">'+esc(k.key)+' · type: '+esc(k.type||'?')+' · tier: '+k.tier+' · '+(k.set?'set':'default')+'</span></td></tr>';
     };
     const setN=(s.all||[]).filter(k=>k.set).length;
     const table='<table class="settbl"><thead><tr><th></th><th>Setting</th><th>Value</th><th>Tier</th><th>Toggle</th></tr></thead><tbody>'+(s.all||[]).map(rowFor).join("")+'</tbody></table>';
     v.innerHTML='<div class="rows">'
-      +'<div class="kv"><span><i>model</i>'+esc(s.model)+'</span><span><i>effort</i>'+esc(s.effortLevel)+'</span><span><i>mode</i>'+esc(s.defaultMode)+'</span><span><i>editor</i>'+esc(s.editorMode)+'</span><span><i>local settings</i>'+(s.hasLocalSettings?'yes':'no')+'</span></div>'
-      +'<p class="sect-lede" style="margin:20px 0 10px">All settings <span class="ro">— '+setN+' set · '+(s.all||[]).length+' known · toggles read-only (editing coming soon)</span></p>'
+      +'<p class="sect-lede" style="margin:0 0 10px">All settings <span class="ro">— '+setN+' set · '+(s.all||[]).length+' known'+(s.hasLocalSettings?' · settings.local.json present':'')+' · toggles read-only (editing coming soon)</span></p>'
       +table
       +'<p class="sect-lede" style="margin:22px 0 8px">Environment</p>'
       +'<div class="kv">'+(s.envKeys.length?s.envKeys.map(k=>'<span><i>env</i>'+esc(k)+' <span class="pill mask">value masked</span></span>').join(""):'<span>no env vars</span>')+'</div>'
       +(s.additionalDirectories.length?'<div class="kv" style="margin-top:10px">'+s.additionalDirectories.map(d=>'<span><i>dir</i>'+esc(d)+'</span>').join("")+'</div>':'')
-      +'<p class="sect-lede" style="margin:22px 0 8px">Permissions</p>'
+      +'<p class="sect-lede" style="margin:22px 0 8px">Permissions <span class="ro">— default mode: '+esc(s.defaultMode)+'</span></p>'
       +'<div>'+perm("allow",s.permissions.allow)+perm("deny",s.permissions.deny)+perm("ask",s.permissions.ask)+'</div></div>';
   } else if(ACTIVE==="rules"){
     const r=DATA.rules;
@@ -713,7 +721,8 @@ async function openDoc(id, title, src){
 }
 $("#view").addEventListener("click",e=>{
   const d=e.target.closest("[data-doc]"); if(d){ openDoc(+d.dataset.doc, d.dataset.title, d.dataset.src); return; }
-  const c=e.target.closest("[data-cmd]"); if(c){ showModal(c.dataset.title, c.dataset.src).textContent=c.dataset.cmd; }
+  const c=e.target.closest("[data-cmd]"); if(c){ showModal(c.dataset.title, c.dataset.src).textContent=c.dataset.cmd; return; }
+  const sr=e.target.closest(".srow"); if(sr){ const nx=sr.nextElementSibling; if(nx&&nx.classList.contains("sdesc")) nx.classList.toggle("open"); }
 });
 function sig(x){return x?JSON.stringify(SECTIONS.map(s=>count(s.id))):"";}
 async function poll(){
