@@ -82,6 +82,18 @@ WantedBy=default.target
 systemctl --user enable --now claude-dashboard
 ```
 
+**Windows (Task Scheduler)** — create a task that runs at logon:
+
+```powershell
+schtasks /create /tn "ClaudeConfigDashboard" /tr "node \"%USERPROFILE%\path\to\claude-config-dashboard\server.mjs\"" /sc onlogon /rl limited
+```
+
+(or just run `node server.mjs` in a terminal when you want it.) On Windows the dashboard reads `%USERPROFILE%\.claude` and `%USERPROFILE%\.claude.json` automatically.
+
+## Platform support
+
+Runs anywhere Node 18+ runs — **macOS, Linux, and Windows**. The server is pure Node with no OS-specific code; config paths resolve from your home directory automatically. Only the *always-on* setup differs per OS (launchd / systemd / Task Scheduler above) — the dashboard itself is identical.
+
 ## How it works
 
 `server.mjs` is a single file with no dependencies. On each `GET /api/data` it walks `~/.claude/` and `~/.claude.json`, masks anything secret-shaped, and returns JSON; the page renders it and polls every 3s. `GET /api/doc?id=N` returns one allow-listed file's contents (masked). That's the whole thing.

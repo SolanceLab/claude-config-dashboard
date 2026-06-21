@@ -274,7 +274,7 @@ function scanMcp() {
     def = def || {};
     const type = def.type || (def.command ? "stdio" : def.url ? "http" : "?");
     let detail = "";
-    if (def.command) detail = String(def.command).split("/").pop() + (Array.isArray(def.args) && def.args.length ? ` · ${def.args.length} args` : "");
+    if (def.command) detail = String(def.command).split(/[\\/]/).pop() + (Array.isArray(def.args) && def.args.length ? ` · ${def.args.length} args` : "");
     else if (def.url) { detail = safe(() => new URL(def.url).host, "(url)"); }
     out.push({ name, type, detail, envKeys: def.env ? Object.keys(def.env) : [], scope });
   };
