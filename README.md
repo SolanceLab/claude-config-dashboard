@@ -111,6 +111,12 @@ Runs anywhere Node 18+ runs — **macOS, Linux, and Windows**. The server is pur
 
 MIT — see [LICENSE](./LICENSE).
 
+## Support
+
+If this saved you some time, a coffee helps keep the work going:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/houseofsolance)
+
 ---
 
 *Built by [SolanceLab](https://github.com/SolanceLab).*
