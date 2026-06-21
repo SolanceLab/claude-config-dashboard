@@ -57,11 +57,22 @@ const SECRET_RE = new RegExp([
   "sk-[A-Za-z0-9]{20,}",                                         // generic sk- keys
   "xox[baprs]-[A-Za-z0-9-]{10,}",                                // Slack
   "AKIA[0-9A-Z]{16}",                                            // AWS access key id
+  "AIza[0-9A-Za-z_-]{35}",                                       // Google API key
   "eyJ[A-Za-z0-9_-]{6,}\\.[A-Za-z0-9_-]{6,}\\.[A-Za-z0-9_-]{6,}", // full JWT (3 segments)
   "-----BEGIN [A-Z ]*PRIVATE KEY-----[\\s\\S]+?-----END [A-Z ]*PRIVATE KEY-----", // PEM
   "(?=[A-Za-z0-9+_-]*[0-9])[A-Za-z0-9+_-]{40,}={0,2}",           // long opaque token w/ a digit — NOT slashes (paths) or all-letter tool names
 ].join("|"), "g");
-const mask = (s) => (s == null ? s : String(s).replace(SECRET_RE, "[masked]"));
+// labeled-secret patterns: catch short/structured secrets the shape regex misses,
+// e.g. `password=hunter2`, `api_key: abc`, `Authorization: ...`, `Bearer xyz`.
+const KEYVAL_RE = /([A-Za-z0-9_-]*(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|authorization|bearer|access[_-]?key|client[_-]?secret|private[_-]?key)[A-Za-z0-9_-]*)(["']?\s*[:=]\s*["']?)([^"'\s&)]{3,})/gi;
+const BEARER_RE = /\b(Bearer\s+)[A-Za-z0-9._-]{6,}/gi;
+const mask = (s) => {
+  if (s == null) return s;
+  return String(s)
+    .replace(SECRET_RE, "[masked]")
+    .replace(KEYVAL_RE, "$1$2[masked]")
+    .replace(BEARER_RE, "$1[masked]");
+};
 // defense-in-depth: mask EVERY outbound string, so a secret accidentally sitting in a
 // skill description, workflow meta, or CLAUDE header can never reach the wire either.
 function deepMask(v) {
@@ -75,23 +86,61 @@ function deepMask(v) {
   return v;
 }
 
-// safety tier per settings key — used to badge the read-only mirror (and to gate a future editor).
-// safe: fine to toggle · caution: changes behaviour · danger: bypasses safety / admin-only.
-const SETTINGS_TIER = {
-  model: "safe", advisorModel: "safe", effortLevel: "safe", editorMode: "safe", language: "safe",
-  showThinkingSummaries: "safe", alwaysThinkingEnabled: "safe", awaySummaryEnabled: "safe",
-  autoCompactEnabled: "safe", autoScrollEnabled: "safe", prefersReducedMotion: "safe",
-  spinnerTipsEnabled: "safe", verbose: "safe", respectGitignore: "safe", fileCheckpointingEnabled: "safe",
-  autoMemoryEnabled: "safe", preferredNotifChannel: "safe", inputNeededNotifEnabled: "safe",
-  agentPushNotifEnabled: "safe", remoteControlAtStartup: "safe", defaultShell: "safe", autoUpdatesChannel: "safe",
-  temperatureOverride: "safe", tui: "safe",
-  disableWorkflows: "caution", disableBundledSkills: "caution", disableSkillShellExecution: "caution",
-  disableAgentView: "caution", fastModePerSessionOptIn: "caution", autoMemoryDirectory: "caution",
-  skipAutoPermissionPrompt: "danger", skipDangerousModePermissionPrompt: "danger", disableAllHooks: "danger",
-  disableArtifact: "danger", disableRemoteControl: "danger", disableClaudeAiConnectors: "danger",
-  cleanupPeriodDays: "danger", apiKeyHelper: "danger", policyHelper: "danger",
+// catalogue of known settings.json keys — drives the full read-only table (set + unset/default),
+// the tier badge, and a future editor. tier: safe (fine to toggle) · caution (changes behaviour) ·
+// danger (bypasses safety / admin-only). type + def let the table show defaults for unset keys.
+const SETTINGS_CATALOG = {
+  // model & behaviour
+  model: { tier: "safe", type: "string" },
+  advisorModel: { tier: "safe", type: "string" },
+  effortLevel: { tier: "safe", type: "enum", enum: ["low", "medium", "high", "xhigh"] },
+  temperatureOverride: { tier: "safe", type: "number" },
+  alwaysThinkingEnabled: { tier: "safe", type: "bool", def: false },
+  showThinkingSummaries: { tier: "safe", type: "bool", def: false },
+  autoCompactEnabled: { tier: "safe", type: "bool", def: true },
+  awaySummaryEnabled: { tier: "safe", type: "bool", def: true },
+  autoMemoryEnabled: { tier: "safe", type: "bool", def: true },
+  // ui
+  editorMode: { tier: "safe", type: "enum", enum: ["normal", "vim"], def: "normal" },
+  tui: { tier: "safe", type: "bool", def: true },
+  autoScrollEnabled: { tier: "safe", type: "bool", def: true },
+  prefersReducedMotion: { tier: "safe", type: "bool", def: false },
+  spinnerTipsEnabled: { tier: "safe", type: "bool" },
+  language: { tier: "safe", type: "string" },
+  // notifications
+  preferredNotifChannel: { tier: "safe", type: "enum", enum: ["auto", "terminal_bell", "iterm2", "iterm2_with_bell", "kitty", "ghostty", "notifications_disabled"], def: "auto" },
+  inputNeededNotifEnabled: { tier: "safe", type: "bool", def: false },
+  agentPushNotifEnabled: { tier: "safe", type: "bool", def: false },
+  remoteControlAtStartup: { tier: "safe", type: "bool" },
+  // dev conveniences
+  verbose: { tier: "safe", type: "bool", def: false },
+  includeGitInstructions: { tier: "safe", type: "bool", def: true },
+  respectGitignore: { tier: "safe", type: "bool", def: true },
+  fileCheckpointingEnabled: { tier: "safe", type: "bool", def: true },
+  defaultShell: { tier: "safe", type: "enum", enum: ["bash", "powershell"], def: "bash" },
+  autoUpdatesChannel: { tier: "safe", type: "enum", enum: ["stable", "latest"], def: "latest" },
+  // caution
+  disableWorkflows: { tier: "caution", type: "bool", def: false },
+  disableBundledSkills: { tier: "caution", type: "bool", def: false },
+  disableSkillShellExecution: { tier: "caution", type: "bool", def: false },
+  disableAgentView: { tier: "caution", type: "bool", def: false },
+  fastModePerSessionOptIn: { tier: "caution", type: "bool", def: false },
+  autoMemoryDirectory: { tier: "caution", type: "string" },
+  attribution: { tier: "caution", type: "object" },
+  includeCoAuthoredBy: { tier: "caution", type: "bool", def: true },
+  minimumVersion: { tier: "caution", type: "string" },
+  // danger
+  skipAutoPermissionPrompt: { tier: "danger", type: "bool" },
+  skipDangerousModePermissionPrompt: { tier: "danger", type: "bool" },
+  disableAllHooks: { tier: "danger", type: "bool" },
+  disableArtifact: { tier: "danger", type: "bool" },
+  disableRemoteControl: { tier: "danger", type: "bool" },
+  disableClaudeAiConnectors: { tier: "danger", type: "bool" },
+  cleanupPeriodDays: { tier: "danger", type: "number", def: 30 },
+  apiKeyHelper: { tier: "danger", type: "string" },
+  policyHelper: { tier: "danger", type: "object" },
 };
-const tierOf = (k) => SETTINGS_TIER[k] || "info";
+const tierOf = (k) => (SETTINGS_CATALOG[k] && SETTINGS_CATALOG[k].tier) || "info";
 
 // minimal frontmatter parse (no yaml dep): grab top-level scalar keys
 function frontmatter(text) {
@@ -100,7 +149,9 @@ function frontmatter(text) {
   const out = {};
   for (const line of m[1].split(/\r?\n/)) {
     const km = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-    if (km) out[km[1]] = km[2].replace(/^["']|["']$/g, "").trim();
+    if (km && !["__proto__", "constructor", "prototype"].includes(km[1])) {
+      out[km[1]] = km[2].replace(/^["']|["']$/g, "").trim();
+    }
   }
   return out;
 }
@@ -178,8 +229,23 @@ function scanSettings() {
     if (typeof v === "object") return "{" + Object.keys(v).length + " keys}";
     return String(v);
   };
-  const all = Object.keys(s).filter((k) => !STRUCTURAL.has(k))
-    .sort().map((k) => ({ key: k, value: display(s[k]), tier: tierOf(k) }));
+  // every catalogued key — whether set in this install or not — plus any uncatalogued keys present.
+  const has = (k) => Object.prototype.hasOwnProperty.call(s, k);
+  const TR = { safe: 0, caution: 1, danger: 2, info: 3 };
+  const all = [];
+  for (const [key, meta] of Object.entries(SETTINGS_CATALOG)) {
+    const set = has(key);
+    all.push({
+      key, tier: meta.tier, type: meta.type, set,
+      value: set ? display(s[key]) : (meta.def !== undefined ? String(meta.def) : "—"),
+    });
+  }
+  for (const key of Object.keys(s)) {
+    if (!SETTINGS_CATALOG[key] && !STRUCTURAL.has(key)) {
+      all.push({ key, tier: "info", type: "other", set: true, value: display(s[key]) });
+    }
+  }
+  all.sort((a, b) => (TR[a.tier] - TR[b.tier]) || a.key.localeCompare(b.key));
   return {
     model: s.model || "(default)",
     effortLevel: s.effortLevel || "(default)",
@@ -224,10 +290,11 @@ function scanMarketplaces() {
   const m = safe(() => JSON.parse(read(join(ROOT, "plugins", "known_marketplaces.json"))), {});
   const out = [];
   const entries = Array.isArray(m) ? m.map((x, i) => [x.name || x.id || String(i), x]) : Object.entries(m || {});
+  const clean = (u) => { try { const url = new URL(u); return url.host + url.pathname; } catch { return u; } };
   for (const [name, v] of entries) {
     const src = v && v.source;
     const repo = src && (src.repo || src.url || src.source);
-    out.push({ name, source: repo || (typeof src === "string" ? src : "") });
+    out.push({ name, source: clean(repo || (typeof src === "string" ? src : "")) });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -334,6 +401,16 @@ function snapshot() {
 
 // ---------- HTTP ----------
 const server = createServer((req, res) => {
+  // DNS-rebinding + cross-site guard: a 127.0.0.1 bind alone doesn't stop a hostile page from
+  // rebinding DNS to loopback and reading this. Require a loopback Host and reject cross-site.
+  const okHost = ["127.0.0.1:" + PORT, "localhost:" + PORT].includes(req.headers.host);
+  const origin = req.headers.origin;
+  const okOrigin = !origin || ["http://127.0.0.1:" + PORT, "http://localhost:" + PORT].includes(origin);
+  if (!okHost || req.headers["sec-fetch-site"] === "cross-site" || !okOrigin) {
+    res.writeHead(403, { "content-type": "text/plain" });
+    res.end("forbidden");
+    return;
+  }
   const json = (code, obj) => {
     res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" });
     res.end(JSON.stringify(obj));
@@ -436,6 +513,21 @@ const PAGE = `<!doctype html><html lang="en"><head>
   .kvk i{color:var(--page-strong);font-style:normal}
   .tdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;vertical-align:middle}
   .tdot.safe{background:var(--blue)} .tdot.caution{background:var(--gold)} .tdot.danger{background:#c98a8a} .tdot.info{background:var(--page-faint)}
+  /* settings table */
+  .settbl{width:100%;border-collapse:collapse}
+  .settbl th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--page-muted);font-weight:400;padding:0 14px 9px;border-bottom:1px solid var(--rule-mid)}
+  .settbl td{padding:10px 14px;border-bottom:1px solid var(--rule-dim);vertical-align:middle}
+  .settbl tr:hover td{background:var(--ink-deep)}
+  .settbl .k{font-family:var(--mono);font-size:12.5px;color:var(--page-strong)}
+  .settbl .val{font-family:var(--mono);font-size:12.5px;color:var(--page-dim);word-break:break-all}
+  .settbl .tlab{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
+  .tlab.safe{color:var(--blue-text)} .tlab.caution{color:var(--gold-text)} .tlab.danger{color:#d0a0a0} .tlab.info{color:var(--page-faint)}
+  /* future toggle — rendered, disabled */
+  .tog{position:relative;display:inline-block;width:34px;height:18px;border-radius:20px;background:var(--ink-raised-2);border:1px solid var(--rule-mid);flex:none;cursor:not-allowed;opacity:.6}
+  .tog.on{background:var(--blue-soft);border-color:var(--blue-soft)}
+  .tog:after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--page-muted);transition:left .15s}
+  .tog.on:after{left:18px;background:var(--blue-text)}
+  .ro{font-family:var(--mono);font-size:11px;color:var(--page-faint)}
   details.perm{margin-top:4px}
   details.perm summary{cursor:pointer;color:var(--blue-text);font-family:var(--mono);font-size:12px;padding:6px 0;list-style:none}
   details.perm summary::-webkit-details-marker{display:none}
@@ -521,7 +613,7 @@ const SECTIONS=[
 ];
 const count=(id)=>{ if(!DATA) return 0;
   if(id==="hooks") return DATA.settings.hooks.length;
-  if(id==="settings") return (DATA.settings.all?DATA.settings.all.length:0)+DATA.settings.permissions.allow.length;
+  if(id==="settings") return DATA.settings.all?DATA.settings.all.length:0;
   if(id==="rules") return DATA.rules.memory.entries;
   if(id==="marketplaces") return (DATA.marketplaces||[]).length;
   return (DATA[id]||[]).length; };
@@ -560,15 +652,24 @@ function renderView(){
   } else if(ACTIVE==="settings"){
     const s=DATA.settings;
     const perm=(label,arr)=>arr.length?'<details class="perm"><summary>'+label+' ('+arr.length+')</summary><div class="pl-wrap">'+arr.map(x=>'<div class="pl" data-h="'+escA(x.toLowerCase())+'">'+esc(x)+'</div>').join("")+'</div></details>':'';
-    const tierTitle={safe:"safe to change",caution:"changes behaviour",danger:"dangerous / admin",info:"informational"};
-    const allHtml=(s.all||[]).map(k=>'<span class="kvk" data-h="'+escA(k.key.toLowerCase())+'" title="'+tierTitle[k.tier]+'"><span class="tdot '+k.tier+'"></span><i>'+esc(k.key)+'</i>'+esc(k.value)+'</span>').join("");
+    const TLAB={safe:"safe",caution:"caution",danger:"danger",info:"other"};
+    const rowFor=(k)=>{
+      const isBool=k.type==="bool";
+      const on=isBool&&k.value==="true";
+      const ctrl=isBool?'<span class="tog'+(on?' on':'')+'" title="editing coming soon — read-only"></span>':'<span class="ro">—</span>';
+      const valCell=k.set?'<span class="val">'+esc(k.value)+'</span>':'<span class="val" style="opacity:.45">'+esc(k.value)+'</span> <span class="ro">default</span>';
+      return '<tr data-h="'+escA(k.key.toLowerCase())+'"><td><span class="tdot '+k.tier+'" title="'+k.tier+'"></span></td><td class="k">'+esc(k.key)+'</td><td>'+valCell+'</td><td><span class="tlab '+k.tier+'">'+(TLAB[k.tier]||k.tier)+'</span></td><td>'+ctrl+'</td></tr>';
+    };
+    const setN=(s.all||[]).filter(k=>k.set).length;
+    const table='<table class="settbl"><thead><tr><th></th><th>Setting</th><th>Value</th><th>Tier</th><th>Toggle</th></tr></thead><tbody>'+(s.all||[]).map(rowFor).join("")+'</tbody></table>';
     v.innerHTML='<div class="rows">'
-      +'<p class="sect-lede" style="margin:0 0 10px">All settings keys <span style="font-family:var(--mono);font-size:11px">— <span class="tdot safe"></span>safe <span class="tdot caution"></span>caution <span class="tdot danger"></span>dangerous (read-only for now)</span></p>'
-      +'<div class="kv">'+(allHtml||'<span>no keys</span>')+'</div>'
-      +'<p class="sect-lede" style="margin:20px 0 8px">Environment</p>'
+      +'<div class="kv"><span><i>model</i>'+esc(s.model)+'</span><span><i>effort</i>'+esc(s.effortLevel)+'</span><span><i>mode</i>'+esc(s.defaultMode)+'</span><span><i>editor</i>'+esc(s.editorMode)+'</span><span><i>local settings</i>'+(s.hasLocalSettings?'yes':'no')+'</span></div>'
+      +'<p class="sect-lede" style="margin:20px 0 10px">All settings <span class="ro">— '+setN+' set · '+(s.all||[]).length+' known · toggles read-only (editing coming soon)</span></p>'
+      +table
+      +'<p class="sect-lede" style="margin:22px 0 8px">Environment</p>'
       +'<div class="kv">'+(s.envKeys.length?s.envKeys.map(k=>'<span><i>env</i>'+esc(k)+' <span class="pill mask">value masked</span></span>').join(""):'<span>no env vars</span>')+'</div>'
       +(s.additionalDirectories.length?'<div class="kv" style="margin-top:10px">'+s.additionalDirectories.map(d=>'<span><i>dir</i>'+esc(d)+'</span>').join("")+'</div>':'')
-      +'<p class="sect-lede" style="margin:20px 0 8px">Permissions</p>'
+      +'<p class="sect-lede" style="margin:22px 0 8px">Permissions</p>'
       +'<div>'+perm("allow",s.permissions.allow)+perm("deny",s.permissions.deny)+perm("ask",s.permissions.ask)+'</div></div>';
   } else if(ACTIVE==="rules"){
     const r=DATA.rules;
