@@ -1,7 +1,7 @@
 {
   "name": "claude-config-dashboard",
-  "version": "1.0.0",
-  "description": "A local, always-fresh, read-only dashboard for everything in your ~/.claude/ — skills, agents, commands, workflows, MCP servers, hooks, plugins, settings, and rules.",
+  "version": "1.1.0",
+  "description": "A local, always-fresh, read-only dashboard for everything in your ~/.claude/ — skills, agents, commands, workflows, MCP servers, hooks, scripts, plugins, settings, and rules.",
   "type": "module",
   "bin": {
     "claude-config-dashboard": "server.mjs"
