@@ -222,6 +222,46 @@ function findScriptPath(cmd) {
   return null;
 }
 
+// ── Scripts inventory ───────────────────────────────────────────────────────────
+// Every executable/script file the config actually RUNS, gathered across surfaces:
+// command-hooks, MCP stdio servers (interpreter + entry file), statusLine, and the
+// credential/auth helper settings. Registered through the same opaque-id DOC_INDEX
+// as any other doc — the browser gets an id + basename + where-it's-used, never a raw path.
+const asFile = (p) => {
+  if (!p || typeof p !== "string") return null;
+  const x = p.startsWith("~/") ? join(homedir(), p.slice(2)) : p;
+  return safe(() => statSync(x).isFile(), false) ? x : null;
+};
+function collectScripts(reg) {
+  const s = safe(() => JSON.parse(read(join(ROOT, "settings.json"))), {});
+  const local = safe(() => JSON.parse(read(join(ROOT, "settings.local.json"))), {});
+  const cfg = safe(() => JSON.parse(read(join(homedir(), ".claude.json"))), {});
+  const map = new Map();
+  const add = (abs, usage) => {
+    if (!abs) return;
+    if (!map.has(abs)) map.set(abs, { abs, name: abs.split(/[\\/]/).pop(), usages: [] });
+    const u = map.get(abs).usages; if (!u.includes(usage)) u.push(usage);
+  };
+  for (const src of [s, local])                                   // command-hooks
+    for (const [event, entries] of Object.entries(src.hooks || {}))
+      for (const e of entries || [])
+        for (const h of e.hooks || [])
+          if (h.type === "command") add(findScriptPath(h.command || ""), "hook · " + event);
+  if (s.statusLine && s.statusLine.command) add(findScriptPath(s.statusLine.command), "statusLine");
+  if (s.subagentStatusLine && s.subagentStatusLine.command) add(findScriptPath(s.subagentStatusLine.command), "subagentStatusLine");
+  for (const k of ["apiKeyHelper", "awsCredentialExport", "awsAuthRefresh", "otelHeadersHelper", "gcpAuthRefresh"])
+    add(asFile(s[k]) || findScriptPath(s[k] || ""), "setting · " + k);                       // auth/credential helpers
+  if (s.fileSuggestion && s.fileSuggestion.command) add(findScriptPath(s.fileSuggestion.command), "setting · fileSuggestion");
+  if (s.policyHelper && s.policyHelper.path) add(asFile(s.policyHelper.path), "setting · policyHelper");
+  const mcp = (name, def) => { if (def) add(findScriptPath([def.command || "", ...(def.args || [])].join(" ")), "mcp · " + name); };
+  for (const [name, def] of Object.entries(cfg.mcpServers || {})) mcp(name, def);             // MCP stdio entry files
+  for (const pdef of Object.values(cfg.projects || {}))
+    for (const [name, def] of Object.entries((pdef && pdef.mcpServers) || {})) mcp(name, def);
+  const out = [];
+  for (const v of map.values()) { const doc = reg(v.abs); if (doc) out.push({ name: v.name, usages: v.usages, doc }); }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function scanSettings() {
   const s = safe(() => JSON.parse(read(join(ROOT, "settings.json"))), {});
   const local = safe(() => JSON.parse(read(join(ROOT, "settings.local.json"))), {});
@@ -421,6 +461,8 @@ function snapshot() {
   out.rules.claudeMd.doc = reg(join(ROOT, "CLAUDE.md"));
   // hooks that resolve to a script file get a doc id too, so the modal can show the body.
   (out.settings.hooks || []).forEach((h) => { if (h._scriptAbs) h.doc = reg(h._scriptAbs); delete h._scriptAbs; });
+  // the Scripts section: every executable the config runs, across all surfaces.
+  out.scripts = collectScripts(reg);
   return out;
 }
 
@@ -643,6 +685,7 @@ const SECTIONS=[
   {id:"workflows",label:"Workflows",sub:"Deterministic multi-agent orchestrations."},
   {id:"mcp",label:"MCP",sub:"Connected MCP servers (names + transport; secrets hidden)."},
   {id:"hooks",label:"Hooks",sub:"Shell that fires on harness events."},
+  {id:"scripts",label:"Scripts",sub:"Every script the config actually runs — hooks, MCP servers, status line, helpers."},
   {id:"plugins",label:"Plugins",sub:"Installed plugin packages and what they provide."},
   {id:"marketplaces",label:"Marketplaces",sub:"Sources plugins are installed from."},
   {id:"settings",label:"Settings",sub:"Model, permissions, environment — the full surface."},
@@ -650,6 +693,7 @@ const SECTIONS=[
 ];
 const count=(id)=>{ if(!DATA) return 0;
   if(id==="hooks") return DATA.settings.hooks.length;
+  if(id==="scripts") return (DATA.scripts||[]).length;
   if(id==="settings") return DATA.settings.all?DATA.settings.all.length:0;
   if(id==="rules") return DATA.rules.memory.entries;
   if(id==="marketplaces") return (DATA.marketplaces||[]).length;
@@ -674,6 +718,11 @@ function renderView(){
     const h=DATA.settings.hooks;
     v.innerHTML=h.length?'<div class="rows">'+h.map(x=>'<div class="row read" data-h="'+escA((x.event+" "+x.matcher+" "+x.command+" "+(x.scriptName||"")).toLowerCase())+'" data-cmd="'+escA(x.commandFull||x.command)+'" data-title="'+escA(x.event+" · "+x.matcher)+'" data-src="hook"'+(x.doc?' data-doc="'+x.doc+'" data-script="'+escA(x.scriptName)+'"':'')+'>'
       +'<span class="ev">'+esc(x.event)+'</span><span class="mt">'+esc(x.matcher)+'</span><span class="cmd">'+esc(x.command)+(x.doc?' <span class="shint">↳ '+esc(x.scriptName)+'</span>':'')+'</span></div>').join("")+'</div>':'<div class="empty">No hooks configured.</div>';
+  } else if(ACTIVE==="scripts"){
+    const sc=DATA.scripts||[];
+    v.innerHTML=sc.length?'<div class="grid">'+sc.map(s=>'<div class="card read" data-h="'+escA((s.name+" "+s.usages.join(" ")).toLowerCase())+'" data-sdoc="'+s.doc+'" data-name="'+escA(s.name)+'" data-usage="'+escA(s.usages.join(" · "))+'">'
+      +'<div class="n">'+esc(s.name)+'</div>'
+      +'<div class="d" style="margin-top:9px">'+s.usages.map(u=>'<span class="tag" style="margin:0 6px 0 0">'+esc(u)+'</span>').join("")+'</div></div>').join("")+'</div>':'<div class="empty">No scripts referenced by config.</div>';
   } else if(ACTIVE==="plugins"){
     v.innerHTML=DATA.plugins.length?'<div class="grid">'+DATA.plugins.map(p=>'<div class="card'+(p.doc?' read':'')+'" data-h="'+escA(p.id.toLowerCase())+'"'+(p.doc?' data-doc="'+p.doc+'" data-title="'+escA(p.id)+'" data-src="plugin"':'')+'>'
       +'<div class="n">'+esc(p.id)+' <span class="pill '+(p.enabled?'on':'off')+'">'+(p.enabled?'enabled':'disabled')+'</span></div>'
@@ -757,7 +806,15 @@ async function openHook(title, cmd, src, docId, scriptName){
     catch(e){ body.textContent="(read failed)"; }
   }
 }
+async function openScript(id, name, usage){
+  const mb=showModal(name, usage);
+  mb.innerHTML='<pre class="hkbody" style="max-height:66vh;margin:0">reading…</pre>';
+  const body=mb.querySelector(".hkbody");
+  try{ const r=await (await fetch("/api/doc?id="+id)).json(); body.textContent=r.error?"(couldn't read — refresh and retry)":r.text; }
+  catch(e){ body.textContent="(read failed)"; }
+}
 $("#view").addEventListener("click",e=>{
+  const sc=e.target.closest("[data-sdoc]"); if(sc){ openScript(+sc.dataset.sdoc, sc.dataset.name, sc.dataset.usage); return; }
   const c=e.target.closest("[data-cmd]"); if(c){ openHook(c.dataset.title, c.dataset.cmd, c.dataset.src, c.dataset.doc?+c.dataset.doc:null, c.dataset.script); return; }
   const d=e.target.closest("[data-doc]"); if(d){ openDoc(+d.dataset.doc, d.dataset.title, d.dataset.src); return; }
   const sr=e.target.closest(".srow"); if(sr){ const nx=sr.nextElementSibling; if(nx&&nx.classList.contains("sdesc")) nx.classList.toggle("open"); }
