@@ -1,6 +1,6 @@
 # claude-config-dashboard
 
-A tiny **local, always-fresh dashboard** for everything in your `~/.claude/` — skills, agents, commands, workflows, MCP servers, hooks, plugins, marketplaces, settings, and rules — in one searchable view.
+A tiny **local, always-fresh dashboard** for everything in your `~/.claude/` — skills, agents, commands, workflows, MCP servers, hooks, scripts, plugins, marketplaces, settings, and rules — in one searchable view.
 
 It runs a small Node server that **scans your filesystem live on every request**, so it can never go stale: there's no cached copy to drift, nothing to regenerate. Open it, and what you see is what's on disk right now.
 
@@ -21,8 +21,9 @@ Claude Code's configuration sprawls across `~/.claude/` (skills, agents, command
 
 ## Features
 
-- **Sidebar navigation** — one section at a time, each with a live count: Skills · Agents · Commands · Workflows · MCP · Hooks · Plugins · Marketplaces · Settings · Rules.
-- **Read the source** — click any skill, agent, command, workflow, plugin, or memory entry to read its full file in a modal; click a hook to see its full command.
+- **Sidebar navigation** — one section at a time, each with a live count: Skills · Agents · Commands · Workflows · MCP · Hooks · Scripts · Plugins · Marketplaces · Settings · Rules.
+- **Read the source** — click any skill, agent, command, workflow, plugin, or memory entry to read its full file in a modal; click a hook to see its command *and* the body of the script it runs.
+- **Scripts** — every executable your config actually runs — hook commands, MCP server entry files, status line, auth helpers — gathered in one section, each click-to-read (package-based MCPs like `npx …` have no local file, so they're skipped).
 - **Full settings surface** — every `settings.json` key, badged by safety tier (🟢 safe · 🟡 caution · 🔴 dangerous).
 - **MCP servers** — names, transport, and env *key names* from `~/.claude.json`.
 - **Live** — the page re-scans every few seconds; the dot pulses when fresh.
