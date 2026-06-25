@@ -203,6 +203,25 @@ function scanWorkflows(dir) {
   return out;
 }
 
+// If a `command` hook resolves to a real script file on disk, return its absolute path so the
+// dashboard can show the script's BODY (not just the wiring). Only script-shaped, existing files
+// qualify — never the audio/data a hook like `afplay` references. The body is masked on read,
+// and is reached only through the same opaque-id DOC_INDEX path as every other doc (no traversal).
+const SCRIPT_EXT = /\.(sh|bash|zsh|fish|ps1|mjs|cjs|js|ts|py|rb|pl|lua)$/i;
+function findScriptPath(cmd) {
+  if (!cmd) return null;
+  const cands = [];
+  for (const m of String(cmd).matchAll(/["']([^"']+)["']/g)) cands.push(m[1]); // quoted tokens first
+  for (const t of String(cmd).split(/[\s;|&()]+/)) if (t) cands.push(t);        // then bare tokens
+  for (let c of cands) {
+    if (!c || !SCRIPT_EXT.test(c)) continue;
+    const p = c.startsWith("~/") ? join(homedir(), c.slice(2)) : c;
+    const tries = p.startsWith("/") ? [p] : [join(ROOT, p), join(process.cwd(), p), p];
+    for (const t of tries) if (safe(() => statSync(t).isFile(), false)) return t;
+  }
+  return null;
+}
+
 function scanSettings() {
   const s = safe(() => JSON.parse(read(join(ROOT, "settings.json"))), {});
   const local = safe(() => JSON.parse(read(join(ROOT, "settings.local.json"))), {});
@@ -210,12 +229,16 @@ function scanSettings() {
   for (const [event, entries] of Object.entries(s.hooks || {})) {
     for (const entry of entries || []) {
       for (const h of entry.hooks || []) {
+        const cmdRaw = h.command || h.type || "";
+        const scriptAbs = h.type === "command" ? findScriptPath(cmdRaw) : null;
         hooks.push({
           event,
           matcher: entry.matcher || "*",
           type: h.type,
-          command: mask(firstSentence(h.command || h.type || "")),
-          commandFull: mask(h.command || h.type || ""),
+          command: mask(firstSentence(cmdRaw)),
+          commandFull: mask(cmdRaw),
+          scriptName: scriptAbs ? scriptAbs.split(/[\\/]/).pop() : "",
+          _scriptAbs: scriptAbs || "",
         });
       }
     }
@@ -396,6 +419,8 @@ function snapshot() {
   out.plugins.forEach((p) => { p.doc = reg(p.path); delete p.path; });
   (out.rules.memory.items || []).forEach((m) => { if (m.readable && MEM_DIR) m.doc = reg(join(MEM_DIR, m.file)); });
   out.rules.claudeMd.doc = reg(join(ROOT, "CLAUDE.md"));
+  // hooks that resolve to a script file get a doc id too, so the modal can show the body.
+  (out.settings.hooks || []).forEach((h) => { if (h._scriptAbs) h.doc = reg(h._scriptAbs); delete h._scriptAbs; });
   return out;
 }
 
@@ -572,6 +597,11 @@ const PAGE = `<!doctype html><html lang="en"><head>
   .modal .mhead .x:hover{border-color:var(--gold-soft);color:var(--page)}
   .modal .mbody{padding:20px 24px;overflow:auto;font-family:var(--serif);font-size:15.5px;line-height:1.64;color:var(--page-dim);white-space:pre-wrap;word-break:break-word}
   .modal .mbody strong{color:var(--page);font-weight:500}
+  .modal .mbody .hklbl{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-text);margin:0 0 7px}
+  .modal .mbody .hkcode{font-family:var(--mono);font-size:12.5px;color:var(--page);background:var(--ink-deep);border:1px solid var(--rule-mid);border-radius:7px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+  .modal .mbody .hkscript{margin-top:18px}
+  .modal .mbody .hkbody{font-family:var(--mono);font-size:12px;color:var(--page-dim);background:var(--ink-deep);border:1px solid var(--rule-mid);border-radius:7px;padding:12px 14px;white-space:pre;overflow:auto;max-height:48vh;line-height:1.55;margin:0}
+  .row .shint{color:var(--gold-text);opacity:.82;font-size:11px}
   @media(max-width:840px){
     .app{flex-direction:column}
     .side{width:auto;height:auto;position:static;flex-direction:column;gap:10px;padding:18px 20px}
@@ -642,8 +672,8 @@ function renderView(){
     v.innerHTML=items.length?'<div class="grid">'+items.map(cardEl).join("")+'</div>':'<div class="empty">Nothing here yet.</div>';
   } else if(ACTIVE==="hooks"){
     const h=DATA.settings.hooks;
-    v.innerHTML=h.length?'<div class="rows">'+h.map(x=>'<div class="row read" data-h="'+escA((x.event+" "+x.matcher+" "+x.command).toLowerCase())+'" data-cmd="'+escA(x.commandFull||x.command)+'" data-title="'+escA(x.event+" · "+x.matcher)+'" data-src="hook">'
-      +'<span class="ev">'+esc(x.event)+'</span><span class="mt">'+esc(x.matcher)+'</span><span class="cmd">'+esc(x.command)+'</span></div>').join("")+'</div>':'<div class="empty">No hooks configured.</div>';
+    v.innerHTML=h.length?'<div class="rows">'+h.map(x=>'<div class="row read" data-h="'+escA((x.event+" "+x.matcher+" "+x.command+" "+(x.scriptName||"")).toLowerCase())+'" data-cmd="'+escA(x.commandFull||x.command)+'" data-title="'+escA(x.event+" · "+x.matcher)+'" data-src="hook"'+(x.doc?' data-doc="'+x.doc+'" data-script="'+escA(x.scriptName)+'"':'')+'>'
+      +'<span class="ev">'+esc(x.event)+'</span><span class="mt">'+esc(x.matcher)+'</span><span class="cmd">'+esc(x.command)+(x.doc?' <span class="shint">↳ '+esc(x.scriptName)+'</span>':'')+'</span></div>').join("")+'</div>':'<div class="empty">No hooks configured.</div>';
   } else if(ACTIVE==="plugins"){
     v.innerHTML=DATA.plugins.length?'<div class="grid">'+DATA.plugins.map(p=>'<div class="card'+(p.doc?' read':'')+'" data-h="'+escA(p.id.toLowerCase())+'"'+(p.doc?' data-doc="'+p.doc+'" data-title="'+escA(p.id)+'" data-src="plugin"':'')+'>'
       +'<div class="n">'+esc(p.id)+' <span class="pill '+(p.enabled?'on':'off')+'">'+(p.enabled?'enabled':'disabled')+'</span></div>'
@@ -719,9 +749,17 @@ async function openDoc(id, title, src){
   try{ const d=await (await fetch("/api/doc?id="+id)).json(); mb.innerHTML=d.error?"(couldn't read — refresh the page and retry)":mdLite(d.text); }
   catch(e){ mb.textContent="(read failed)"; }
 }
+async function openHook(title, cmd, src, docId, scriptName){
+  const mb=showModal(title, src);
+  mb.innerHTML='<div class="hkcmd"><span class="hklbl">command</span><div class="hkcode">'+esc(cmd)+'</div></div>'+(docId?'<div class="hkscript"><span class="hklbl">'+esc(scriptName||"script")+'</span><pre class="hkbody">reading…</pre></div>':'');
+  if(docId){ const body=mb.querySelector(".hkbody");
+    try{ const r=await (await fetch("/api/doc?id="+docId)).json(); body.textContent=r.error?"(couldn't read — refresh and retry)":r.text; }
+    catch(e){ body.textContent="(read failed)"; }
+  }
+}
 $("#view").addEventListener("click",e=>{
+  const c=e.target.closest("[data-cmd]"); if(c){ openHook(c.dataset.title, c.dataset.cmd, c.dataset.src, c.dataset.doc?+c.dataset.doc:null, c.dataset.script); return; }
   const d=e.target.closest("[data-doc]"); if(d){ openDoc(+d.dataset.doc, d.dataset.title, d.dataset.src); return; }
-  const c=e.target.closest("[data-cmd]"); if(c){ showModal(c.dataset.title, c.dataset.src).textContent=c.dataset.cmd; return; }
   const sr=e.target.closest(".srow"); if(sr){ const nx=sr.nextElementSibling; if(nx&&nx.classList.contains("sdesc")) nx.classList.toggle("open"); }
 });
 function sig(x){return x?JSON.stringify(SECTIONS.map(s=>count(s.id))):"";}
