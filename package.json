@@ -1,0 +1,41 @@
+{
+  "name": "claude-config-dashboard",
+  "version": "1.2.0",
+  "description": "A local, always-fresh, read-only dashboard for everything in your ~/.claude/ — skills, agents, commands, workflows, MCP servers, hooks, scripts, plugins, settings, and rules.",
+  "type": "module",
+  "bin": {
+    "claude-config-dashboard": "server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "dashboard",
+    "config",
+    "mcp",
+    "skills",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "author": "SolanceLab",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SolanceLab/claude-config-dashboard.git"
+  },
+  "dependencies": {},
+  "files": [
+    "server.mjs",
+    "lib/",
+    "dashboard.config.example.json",
+    "com.solancelab.claude-dashboard.plist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
+}

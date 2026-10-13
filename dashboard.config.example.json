@@ -1,0 +1,17 @@
+{
+  "brand": { "name": "Config", "accent": "", "eyebrow": "Claude Code", "font": "", "footerText": "built by SolanceLab", "footerUrl": "https://github.com/SolanceLab" },
+  "workspaceDir": "~/code/my-workspace",
+  "validator": { "enabled": true },
+  "sessions": { "enabled": true, "dir": "claims", "staleHours": 6, "lede": "Sessions claim a repo before working in it." },
+  "launchd": {
+    "enabled": true,
+    "prefixes": ["com.example."],
+    "logTable": { "file": "INFRA.md", "section": "1.", "jobColumn": 1, "logColumn": 4, "searchDirs": ["."] },
+    "freshHours": 26,
+    "staleHours": 192
+  },
+  "infraMap": { "enabled": true, "file": "INFRA.md", "sections": ["3", "4"], "tagKeys": ["HOT", "WARM", "DORMANT"] },
+  "statusPanels": [
+    { "label": "Nightly check", "file": "state/nightly.json", "statusKey": "last_result.status", "timeKey": "last_result.checked_at", "failValues": ["fail"], "okValues": ["pass"], "lede": "What this check does." }
+  ]
+}
