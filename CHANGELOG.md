@@ -2,11 +2,11 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.3.0]
 
 ### Changed
 - Licence changes to PolyForm Noncommercial 1.0.0 with a Required Notice (LICENSE.md, NOTICE.md). Versions released up to 1.2.0 were published under the MIT licence and stay MIT for the copies already in use; the new licence applies from the next release.
-- README follows the House of Solance release layout; copyright lines on every source file; added CONTRACT.md, Makefile (`make test`), a test workflow and a plugin folder.
+- README follows the House of Solance release layout; copyright lines on every source file; added CONTRACT.md, Makefile (`make test`) and a test workflow.
 
 ## [1.2.0] — 2026-10-13
 

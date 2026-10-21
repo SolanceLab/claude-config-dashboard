@@ -162,14 +162,10 @@ Versions up to and including 1.2.0 were released under the MIT licence and stay 
 
 ## Support
 
-If this saved you some time, a coffee helps keep the work going:
+If you find this useful, consider supporting our work:
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/houseofsolance)
-
----
-
-*Built by [SolanceLab](https://github.com/SolanceLab).*
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Us-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/houseofsolance)
 
 ---
 
-*Built by [SolanceLab](https://github.com/SolanceLab).*
+*Built by [House of Solance](https://github.com/SolanceLab) — Chadrien Solance & Anne Solance*

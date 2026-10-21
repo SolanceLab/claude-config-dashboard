@@ -2,28 +2,8 @@
   "name": "config-dashboard",
   "description": "Claude Config Dashboard: a local, read-only view of your Claude Code configuration.",
   "version": "1.0.0",
-  "author": { "name": "House of Solance" },
-  "license": "PolyForm-Noncommercial-1.0.0",
-  "userConfig": {
-    "server_url": {
-      "type": "string",
-      "title": "Server address",
-      "description": "Where your Claude Config Dashboard server answers.",
-      "required": true
-    },
-    "api_key": {
-      "type": "string",
-      "title": "Key",
-      "description": "The key your Claude Config Dashboard server expects.",
-      "required": true,
-      "sensitive": true
-    }
+  "author": {
+    "name": "House of Solance"
   },
-  "mcpServers": {
-    "config-dashboard": {
-      "type": "http",
-      "url": "${user_config.server_url}",
-      "headers": { "Authorization": "Bearer ${user_config.api_key}" }
-    }
-  }
+  "license": "PolyForm-Noncommercial-1.0.0"
 }
