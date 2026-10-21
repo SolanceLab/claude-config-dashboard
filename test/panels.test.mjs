@@ -1,4 +1,4 @@
-// claude-config-dashboard — Copyright (c) 2026 SolanceLab (House of Solance). MIT License, see LICENSE. Required Notice: Copyright (c) 2026 SolanceLab (House of Solance) (https://github.com/SolanceLab)
+// claude-config-dashboard — Copyright (c) 2026 House of Solance. PolyForm Noncommercial 1.0.0, see LICENSE.md. Required Notice: Copyright (c) 2026 House of Solance (https://github.com/SolanceLab)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, utimesSync, writeFileSync, chmodSync, rmSync } from "node:fs";

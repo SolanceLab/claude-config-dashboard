@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// claude-config-dashboard — Copyright (c) 2026 SolanceLab (House of Solance). MIT License, see LICENSE. Required Notice: Copyright (c) 2026 SolanceLab (House of Solance) (https://github.com/SolanceLab)
+// claude-config-dashboard — Copyright (c) 2026 House of Solance. PolyForm Noncommercial 1.0.0, see LICENSE.md. Required Notice: Copyright (c) 2026 House of Solance (https://github.com/SolanceLab)
 /**
  * claude-config-dashboard — a local, always-fresh view of everything in ~/.claude/:
  * skills, agents, commands, workflows, hooks, permissions, env, plugins, and rules.
