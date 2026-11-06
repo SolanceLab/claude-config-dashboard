@@ -41,6 +41,21 @@ Or run it straight from GitHub without cloning:
 npx github:SolanceLab/claude-config-dashboard
 ```
 
+### As a plugin (Claude Code and Codex)
+
+The plugin teaches your AI to start the dashboard for you and tell you where to open it. It needs Node 18+.
+
+```bash
+claude plugin marketplace add SolanceLab/plugins
+claude plugin install claude-config-dashboard@solancelab
+```
+
+```bash
+codex plugin marketplace add SolanceLab/plugins
+```
+
+Then install claude-config-dashboard from that store in Codex's plugin list.
+
 ### Always-on (optional)
 
 Keep it running so it's always a bookmark away.

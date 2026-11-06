@@ -1,7 +1,7 @@
 {
-  "name": "config-dashboard",
-  "description": "Claude Config Dashboard: a local, read-only view of your Claude Code configuration.",
-  "version": "1.0.0",
+  "name": "claude-config-dashboard",
+  "description": "Claude Config Dashboard: a local, read-only page that lists everything in your ~/.claude folder (skills, agents, commands, workflows, MCP servers, hooks, plugins, settings). Runs on your own computer.",
+  "version": "1.4.0",
   "author": {
     "name": "House of Solance"
   },

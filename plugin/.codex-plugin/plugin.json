@@ -1,0 +1,11 @@
+{
+  "name": "claude-config-dashboard",
+  "version": "1.4.0",
+  "description": "Claude Config Dashboard: a local, read-only page that lists everything in your ~/.claude folder (skills, agents, commands, workflows, MCP servers, hooks, plugins, settings). Runs on your own computer.",
+  "author": {
+    "name": "House of Solance",
+    "url": "https://github.com/SolanceLab"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "skills": "./skills/"
+}

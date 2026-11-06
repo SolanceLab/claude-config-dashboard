@@ -2,6 +2,15 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## [1.4.0]
+
+### Added
+- Installable as a plugin for Claude Code and Codex: a skill that starts the dashboard for you with `npx` straight from this repository, and opens it on `http://localhost:7373`. The dashboard itself is unchanged: read-only, loopback only, secrets masked.
+- A test that keeps both plugin manifests, the skill and `package.json` on one version.
+
+### Changed
+- The plugin is named `claude-config-dashboard`, as the room is (it was `config-dashboard`).
+
 ## [1.3.0]
 
 ### Changed
