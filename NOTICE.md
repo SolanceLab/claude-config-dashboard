@@ -6,4 +6,4 @@ Required Notice: Copyright (c) 2026 House of Solance (https://github.com/Solance
 
 ## Third-party code
 
-None. (List every third-party file here with its own licence text; the PolyForm licence does not apply to it.)
+None.
