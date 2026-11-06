@@ -5,7 +5,7 @@ description: Use when the user wants to see everything in their Claude Code conf
 
 # Claude Config Dashboard
 
-A local, read-only page that lists the user's `~/.claude` folder: skills, agents, commands, workflows, MCP servers, hooks, scripts, plugins, marketplaces, settings and rules, with a live count for each and a reader for any item's source. It listens on `127.0.0.1` only, never changes the configuration, and shows key names, never secret values. It needs Node 18 or newer.
+A local, read-only page that lists the user's `~/.claude` folder: skills, agents, commands, workflows, MCP servers, hooks, scripts, plugins, marketplaces, settings and rules, with a live count for each and a reader for any item's source. It listens on `127.0.0.1` only, never changes the configuration, and shows key names for settings and masks secret-looking values in the file reader (masking is pattern based and can miss an unusual shape, so do not read file contents aloud or paste them elsewhere). It needs Node 18 or newer.
 
 ## Start it
 

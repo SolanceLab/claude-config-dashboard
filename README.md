@@ -38,7 +38,7 @@ node server.mjs
 Or run it straight from GitHub without cloning:
 
 ```bash
-npx github:SolanceLab/claude-config-dashboard
+npx github:SolanceLab/claude-config-dashboard#v1.4.0
 ```
 
 ### As a plugin (Claude Code and Codex)
@@ -138,8 +138,8 @@ This tool reads your config, some of which is sensitive. It's built to never exp
 
 - **Loopback only.** Binds `127.0.0.1` — never `0.0.0.0`. Not reachable from your network.
 - **Read-only.** No write endpoints. It cannot modify your Claude Code config.
-- **Secrets masked.** Token/key/JWT/PEM shapes are redacted everywhere; environment variables and MCP server configs show **key names only**, never values; MCP `args`, URLs, and headers are never sent.
-- **No raw paths on the wire.** File reads use opaque per-scan IDs mapped server-side to an allow-list, so the browser can't request an arbitrary path (no traversal).
+- **Secrets masked, best effort.** Token/key/JWT/PEM shapes are redacted everywhere (pattern matching can miss a credential in an unusual shape, so treat the file reader as showing your real files); environment variables and MCP server configs show **key names only**, never values; MCP `args`, URLs, and headers are never sent.
+- **No arbitrary file reads.** File reads use opaque per-scan IDs mapped server-side to an allow-list, so the browser can't request an arbitrary path (no traversal). The page does receive the absolute path of your config folder and its memory folder (they show your home folder name), but only on `127.0.0.1`.
 - **No dependencies, no telemetry, no network calls** (other than loading fonts from Google Fonts — remove the `<link>` in `server.mjs` to go fully offline).
 
 Even so: this is a local developer tool. Run it on a machine you trust, for your own config.
